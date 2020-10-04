@@ -1,9 +1,7 @@
-import sys
 import asyncio
+import sys
 import unittest
-import json
-import base64
-import re
+
 import pytest
 
 nkeys_installed = None
@@ -15,7 +13,7 @@ except ModuleNotFoundError:
     nkeys_installed = False
 
 from nats.aio.client import Client as NATS
-from nats.aio.errors import ErrTimeout, ErrInvalidUserCredentials
+from nats.aio.errors import ErrInvalidUserCredentials
 from tests.utils import (
     async_test, TrustedServerTestCase, NkeysServerTestCase
 )
@@ -141,8 +139,3 @@ class ClientJWTAuthTest(TrustedServerTestCase):
                 user_credentials="./tests/nkeys/bad-user2.creds",
                 allow_reconnect=False,
             )
-
-
-if __name__ == '__main__':
-    runner = unittest.TextTestRunner(stream=sys.stdout)
-    unittest.main(verbosity=2, exit=False, testRunner=runner)

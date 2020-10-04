@@ -146,16 +146,7 @@ class NatsServer(Gnatsd):
         self.bin_name = "nats-server"
 
 
-class NatsTestCase(unittest.TestCase):
-    def setUp(self):
-        print(
-            "\n=== RUN {}.{}".format(
-                self.__class__.__name__, self._testMethodName
-            )
-        )
-
-
-class SingleServerTestCase(NatsTestCase):
+class SingleServerTestCase(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.server_pool = []
@@ -172,7 +163,7 @@ class SingleServerTestCase(NatsTestCase):
         self.loop.close()
 
 
-class MultiServerAuthTestCase(NatsTestCase):
+class MultiServerAuthTestCase(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.server_pool = []
@@ -193,7 +184,7 @@ class MultiServerAuthTestCase(NatsTestCase):
         self.loop.close()
 
 
-class MultiServerAuthTokenTestCase(NatsTestCase):
+class MultiServerAuthTokenTestCase(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.server_pool = []
@@ -214,7 +205,7 @@ class MultiServerAuthTokenTestCase(NatsTestCase):
         self.loop.close()
 
 
-class TLSServerTestCase(NatsTestCase):
+class TLSServerTestCase(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.loop = asyncio.new_event_loop()
@@ -237,7 +228,7 @@ class TLSServerTestCase(NatsTestCase):
         self.loop.close()
 
 
-class MultiTLSServerAuthTestCase(NatsTestCase):
+class MultiTLSServerAuthTestCase(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.server_pool = []
@@ -270,14 +261,15 @@ class MultiTLSServerAuthTestCase(NatsTestCase):
         self.loop.close()
 
 
-class ClusteringTestCase(NatsTestCase):
+class ClusteringTestCase(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.server_pool = []
         self.loop = asyncio.new_event_loop()
 
         routes = [
-            "nats://127.0.0.1:6223", "nats://127.0.0.1:6224",
+            "nats://127.0.0.1:6223",
+            "nats://127.0.0.1:6224",
             "nats://127.0.0.1:6225"
         ]
         server1 = Gnatsd(
@@ -318,7 +310,7 @@ class ClusteringTestCase(NatsTestCase):
         self.loop.close()
 
 
-class ClusteringDiscoveryAuthTestCase(NatsTestCase):
+class ClusteringDiscoveryAuthTestCase(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.server_pool = []
@@ -367,7 +359,7 @@ class ClusteringDiscoveryAuthTestCase(NatsTestCase):
         self.loop.close()
 
 
-class NkeysServerTestCase(NatsTestCase):
+class NkeysServerTestCase(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.server_pool = []
@@ -386,7 +378,7 @@ class NkeysServerTestCase(NatsTestCase):
         self.loop.close()
 
 
-class TrustedServerTestCase(NatsTestCase):
+class TrustedServerTestCase(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.server_pool = []
