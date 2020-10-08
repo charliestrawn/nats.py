@@ -315,15 +315,19 @@ class ClientTest(SingleServerTestCase):
     async def test_subscribe_no_echo(self):
         nc = NATS()
         msgs = []
+        sem = asyncio.Semaphore(10)
+        sem2 = asyncio.Semaphore(10)
 
         nc2 = NATS()
         msgs2 = []
 
         async def subscription_handler(msg):
             msgs.append(msg)
+            await sem.acquire()
 
         async def subscription_handler2(msg):
             msgs2.append(msg)
+            await sem2.acquire()
 
         await nc.connect(no_echo=True)
         await nc2.connect(no_echo=False)
@@ -334,11 +338,8 @@ class ClientTest(SingleServerTestCase):
         payload = b'hello world'
         for i in range(0, 10):
             await nc.publish("foo", payload)
-            await asyncio.sleep(0)
         await nc.flush()
-
-        # Wait a bit for message to be received.
-        await asyncio.sleep(1)
+        await nc2.flush()
 
         self.assertEqual(0, len(msgs))
         self.assertEqual(10, len(msgs2))
@@ -396,7 +397,7 @@ class ClientTest(SingleServerTestCase):
             await nc.publish(f"tests.{i}", b'bar')
 
         # Wait a bit for messages to be received.
-        await asyncio.sleep(1)
+        await asyncio.sleep(3)
         self.assertEqual(5, len(msgs))
         self.assertEqual("tests.1", msgs[1].subject)
         self.assertEqual("tests.3", msgs[3].subject)
