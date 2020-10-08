@@ -315,19 +315,15 @@ class ClientTest(SingleServerTestCase):
     async def test_subscribe_no_echo(self):
         nc = NATS()
         msgs = []
-        sem = asyncio.Semaphore(10)
-        sem2 = asyncio.Semaphore(10)
 
         nc2 = NATS()
         msgs2 = []
 
         async def subscription_handler(msg):
             msgs.append(msg)
-            await sem.acquire()
 
         async def subscription_handler2(msg):
             msgs2.append(msg)
-            await sem2.acquire()
 
         await nc.connect(no_echo=True)
         await nc2.connect(no_echo=False)
@@ -387,7 +383,7 @@ class ClientTest(SingleServerTestCase):
             if msg.subject == "tests.1":
                 await asyncio.sleep(0.5)
             if msg.subject == "tests.3":
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(1.0)
             msgs.append(msg)
 
         await nc.connect()
@@ -399,8 +395,11 @@ class ClientTest(SingleServerTestCase):
         # Wait a bit for messages to be received.
         await asyncio.sleep(3)
         self.assertEqual(5, len(msgs))
+        self.assertEqual("tests.0", msgs[0].subject)
         self.assertEqual("tests.1", msgs[1].subject)
+        self.assertEqual("tests.2", msgs[2].subject)
         self.assertEqual("tests.3", msgs[3].subject)
+        self.assertEqual("tests.4", msgs[4].subject)
         await nc.close()
 
     @async_test
@@ -422,7 +421,6 @@ class ClientTest(SingleServerTestCase):
         for i in range(0, 5):
             await nc.publish(f"tests.{i}", b'bar')
 
-        await asyncio.sleep(0)
         await asyncio.wait_for(sub.drain(), 1)
 
         await asyncio.wait_for(fut, 1)
@@ -457,8 +455,6 @@ class ClientTest(SingleServerTestCase):
     @async_test
     async def test_subscribe_iterate_unsub(self):
         nc = NATS()
-        msgs = []
-
         await nc.connect()
 
         # Make subscription that only expects a couple of messages.
@@ -481,12 +477,11 @@ class ClientTest(SingleServerTestCase):
         self.assertEqual("tests.0", msgs[0].subject)
         self.assertEqual("tests.1", msgs[1].subject)
         await nc.drain()
+        await nc.close()
 
     @async_test
     async def test_subscribe_iterate_next_msg(self):
         nc = NATS()
-        msgs = []
-
         await nc.connect()
 
         # Make subscription that only expects a couple of messages.
@@ -533,14 +528,9 @@ class ClientTest(SingleServerTestCase):
     @async_test
     async def test_subscribe_without_coroutine_unsupported(self):
         nc = NATS()
-        msgs = []
 
-        def subscription_handler(msg):
-            if msg.subject == "tests.1":
-                time.sleep(0.5)
-            if msg.subject == "tests.3":
-                time.sleep(0.2)
-            msgs.append(msg)
+        def subscription_handler():
+            pass
 
         await nc.connect()
 
@@ -568,18 +558,14 @@ class ClientTest(SingleServerTestCase):
         await nc.publish("foo", b'C')
         await nc.publish("foo", b'D')
 
-        # Ordering should be preserverd in these at least
+        # Ordering should be preserved in these at least
         self.assertEqual(b'A', msgs[0].data)
         self.assertEqual(b'B', msgs[1].data)
 
-        # Should not exist by now
-        with self.assertRaises(KeyError):
-            nc._subs[sub._id].received
+        self.assertFalse(sub._id in nc._subs)
 
-        await asyncio.sleep(1)
-        endpoint = '127.0.0.1:{port}'.format(
-            port=self.server_pool[0].http_port
-        )
+        await asyncio.sleep(0.5)
+        endpoint = f'127.0.0.1:{self.server_pool[0].http_port}'
         httpclient = http.client.HTTPConnection(endpoint, timeout=5)
         httpclient.request('GET', '/connz')
         response = httpclient.getresponse()
@@ -667,19 +653,21 @@ class ClientTest(SingleServerTestCase):
     async def test_msg_respond(self):
         nc = NATS()
         msgs = []
+        event = asyncio.Event()
 
         async def cb1(msg):
             await msg.respond(b'bar')
 
         async def cb2(msg):
             msgs.append(msg)
+            event.set()
 
         await nc.connect()
         await nc.subscribe('subj1', cb=cb1)
         await nc.subscribe('subj2', cb=cb2)
         await nc.publish('subj1', b'foo', reply='subj2')
 
-        await asyncio.sleep(1)
+        await asyncio.wait_for(event.wait(), 1)
         self.assertEqual(1, len(msgs))
 
     @async_test
